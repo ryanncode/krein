@@ -1,7 +1,5 @@
 # krein
 
-🔗 **[View the `tensor-sieve` Formal Verification](https://github.com/ryanncode/tensor-sieve)**
-
 **krein** is a high-performance WebAssembly (WASM) computational engine and React visualization suite for the `tensor-sieve` formalization project.
 
 While the [tensor-sieve](https://github.com/ryanncode/tensor-sieve) Lean 4 repository provides the rigorous **Formal Theoretical Warrant** for non-Archimedean kinematics, `krein` provides the **physical execution layer**, bringing the mathematics directly into the browser.
