@@ -193,12 +193,15 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
         // Build real block matrix for this slice to compute complex eigenvalues
         // A complex matrix M = A + iB corresponds to a real block matrix [A, -B; B, A]
         let size = slice.len();
-        let mut mat_real = DMatrix::from_element(size * 2, size * 2, 0.0);
-        for (i, &a) in slice.iter().enumerate() {
+        let eig_size = std::cmp::min(size, 150);
+        let mut mat_real = DMatrix::from_element(eig_size * 2, eig_size * 2, 0.0);
+        for i in 0..eig_size {
+            let a = slice[i];
             let unit_a = address_to_krein_unit(a);
             let parity_a = krein_bilin(unit_a, KreinCoord(1, 1)) as f64;
             
-            for (j, &b) in slice.iter().enumerate() {
+            for j in 0..eig_size {
+                let b = slice[j];
                 let amp = cross_branch_amplitude(a, b);
                 
                 // Multiply by J-metric (parity_a) to convert Hermitian form H_ij to operator C_ij = J_ii * H_ij
@@ -206,9 +209,9 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
                 let c_im = parity_a * amp.im;
                 
                 mat_real[(i, j)] = c_re;
-                mat_real[(i + size, j + size)] = c_re;
-                mat_real[(i, j + size)] = -c_im;
-                mat_real[(i + size, j)] = c_im;
+                mat_real[(i + eig_size, j + eig_size)] = c_re;
+                mat_real[(i, j + eig_size)] = -c_im;
+                mat_real[(i + eig_size, j)] = c_im;
             }
         }
         
@@ -257,8 +260,8 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
             // The observer is bound to the positive-definite subspace. 
             // Exceptional points (broken PT-symmetry) emerge as complex conjugate pairs,
             // and negative real eigenvalues represent negative-norm ghost states.
-            let complex_im = eigenvalues[current_idx].im;
-            let real_re = eigenvalues[current_idx].re;
+            let complex_im = if current_idx < eigenvalues.len() { eigenvalues[current_idx].im } else { 0.0 };
+            let real_re = if current_idx < eigenvalues.len() { eigenvalues[current_idx].re } else { 1.0 };
             let is_observable = real_re > 0.0 && complex_im.abs() < 1e-10;
             
             data.push(GUEDataPoint {

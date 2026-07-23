@@ -47,7 +47,7 @@ function App() {
           <div><strong style={{ color: '#38bdf8' }}>Math/Logic:</strong> A fundamental symmetry operator <InlineMath math="J" /> orthogonally decomposes the space into positive and negative definite subspaces <InlineMath math="\mathcal{K} = \mathcal{K}^+ \oplus \mathcal{K}^-" />. The inner product is explicitly indefinite:
           <BlockMath math="[x, y] = \langle Jx, y \rangle \quad \text{where} \quad J = P^+ - P^-, \; J^2 = I, \; J^* = J" />
           This natively absorbs the minus sign from the trace formula without relying on singular boundary mechanics.</div>
-          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> Expressed via the <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>KreinCoord</code> struct and <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>krein_bilin</code> bilinear form in Rust. It intentionally omits standard strict-positivity limits required by typical compilers like Lean 4.</div>
+          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> Expressed via the <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>KreinCoord</code> struct and <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>krein_bilin</code> bilinear form in Rust. It intentionally omits conventional strict-positivity limits required by typical compilers like Lean 4.</div>
         </div>
       )
     },
@@ -68,7 +68,7 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div><strong style={{ color: '#38bdf8' }}>Math/Logic:</strong> The cohomological equation used to evaluate fixed points across transitions. Its alternating sum naturally yields a negative sign (the absorption spectrum) from the first cohomology group <InlineMath math="H_{et}^1" />:
           <BlockMath math="\sum_{n} (-1)^n \text{Tr}(F \mid H^n(X, \mathbb{Q}_l))" />
-          In standard math, this minus sign is an unmanageable anomaly. Here, it is structural.</div>
+          In orthodox mathematics, this minus sign is an unmanageable anomaly. Here, it is structural.</div>
           <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> The <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>cross_branch_amplitude</code> function computes topological distance. The alternating nature of this distance directly seeds the imaginary components, yielding the negative norms.</div>
         </div>
       )
@@ -78,7 +78,7 @@ function App() {
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div><strong style={{ color: '#38bdf8' }}>Math/Logic:</strong> Mimics an observer bound by physical probability. Anchors <InlineMath math="\Lambda" />-operations in absolute geometry over <InlineMath math="\mathbb{F}_1" /> so the trace operates combinatorially. This filters the indefinite Krein topology back down to an observable Hilbert space.</div>
-          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> The <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>is_observable</code> flag in Rust strictly filters out real eigenvalues <InlineMath math="\le 0" />, physically trapping anomalies that violate standard laws of physics.</div>
+          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> The <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>is_observable</code> flag in Rust strictly filters out real eigenvalues <InlineMath math="\le 0" />, physically trapping anomalies that violate established physical laws.</div>
         </div>
       )
     },
@@ -127,7 +127,7 @@ function App() {
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div><strong style={{ color: '#38bdf8' }}>Math/Logic:</strong> Because the Pontrjagin dual of the idele class group <InlineMath math="C_k" /> maps to a diffuse Haar measure, individual points (discrete primes) have a measure of zero. To force them to appear, continuous physics artificially weights the space via Sobolev exponent <InlineMath math="\delta > 1" />.</div>
-          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> By discarding standard Hilbert positivity, the engine successfully circumvents the need for any Sobolev smoothing, executing the factorization entirely discretely.</div>
+          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> By discarding canonical Hilbert positivity, the engine successfully circumvents the need for any Sobolev smoothing, executing the factorization entirely discretely.</div>
         </div>
       )
     },
@@ -201,9 +201,16 @@ function App() {
     <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', padding: '2rem', maxWidth: '1200px', margin: '0 auto', color: '#f3f4f6', background: '#1e1e24', minHeight: '100vh' }}>
       <header style={{ borderBottom: '2px solid #3f3f46', marginBottom: '1.5rem', paddingBottom: '1rem' }}>
         <h1 style={{ fontSize: '24px', margin: 0, fontWeight: 700, letterSpacing: '-0.5px', color: '#ffffff' }}>Topological GUE Emission Spectrum</h1>
-        <p style={{ margin: '0.5rem 0 0 0', color: '#9ca3af', fontSize: '14px' }}>
+        <p style={{ margin: '0.8rem 0 1.2rem 0', color: '#9ca3af', fontSize: '14px' }}>
           Discrete Kinematic Operator executing over Krein Space.
         </p>
+        <div style={{ display: 'flex', gap: '1rem', fontSize: '14px', justifyContent: 'flex-start', alignItems: 'center', marginLeft: '2.7rem' }}>
+          <a href="https://thing.rodeo/tensor-sieve/" target="_blank" rel="noreferrer" style={{ color: '#1e90ff', textDecoration: 'none', transition: 'opacity 0.2s' }} onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'} onMouseOut={(e) => e.currentTarget.style.opacity = '1'}>Blog Post</a>
+          <span style={{ color: '#52525b' }}>|</span>
+          <a href="https://github.com/ryanncode/krein" target="_blank" rel="noreferrer" style={{ color: '#1e90ff', textDecoration: 'none', transition: 'opacity 0.2s' }} onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'} onMouseOut={(e) => e.currentTarget.style.opacity = '1'}>Krein Git Repo</a>
+          <span style={{ color: '#52525b' }}>|</span>
+          <a href="https://github.com/ryanncode/tensor-sieve" target="_blank" rel="noreferrer" style={{ color: '#1e90ff', textDecoration: 'none', transition: 'opacity 0.2s' }} onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'} onMouseOut={(e) => e.currentTarget.style.opacity = '1'}>Tensor-Sieve Repo</a>
+        </div>
       </header>
 
       <div style={{ marginBottom: '2rem', maxWidth: '1000px' }}>
