@@ -11,6 +11,9 @@ pub struct GUEDataPoint {
     pub local_degree: u32,
     pub jammed: u8,
     pub eigenvalue_spacing: f64,
+    pub is_observable: bool,
+    pub complex_im: f64,
+    pub real_re: f64,
 }
 
 fn distinct_prime_factors(mut n: u64) -> Vec<u64> {
@@ -187,26 +190,48 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
         
         let w = if slice.is_empty() { 0 } else { count_factors(slice[0]) };
         
-        // Build Hermitian Matrix for this slice
+        // Build real block matrix for this slice to compute complex eigenvalues
+        // A complex matrix M = A + iB corresponds to a real block matrix [A, -B; B, A]
         let size = slice.len();
-        let mut mat = DMatrix::from_element(size, size, Complex::new(0.0, 0.0));
+        let mut mat_real = DMatrix::from_element(size * 2, size * 2, 0.0);
         for (i, &a) in slice.iter().enumerate() {
+            let unit_a = address_to_krein_unit(a);
+            let parity_a = krein_bilin(unit_a, KreinCoord(1, 1)) as f64;
+            
             for (j, &b) in slice.iter().enumerate() {
-                mat[(i, j)] = cross_branch_amplitude(a, b);
+                let amp = cross_branch_amplitude(a, b);
+                
+                // Multiply by J-metric (parity_a) to convert Hermitian form H_ij to operator C_ij = J_ii * H_ij
+                let c_re = parity_a * amp.re;
+                let c_im = parity_a * amp.im;
+                
+                mat_real[(i, j)] = c_re;
+                mat_real[(i + size, j + size)] = c_re;
+                mat_real[(i, j + size)] = -c_im;
+                mat_real[(i + size, j)] = c_im;
             }
         }
         
-        // Compute eigenvalues
-        let eig = mat.symmetric_eigen();
-        let mut eigenvalues: Vec<f64> = eig.eigenvalues.into_iter().copied().collect();
-        eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // Compute complex eigenvalues natively using real block matrix
+        let eig = mat_real.complex_eigenvalues();
+        let mut all_eigenvalues: Vec<Complex<f64>> = eig.into_iter().copied().collect();
+        // The block matrix produces each eigenvalue twice (as conjugate pairs).
+        // We sort by real part, then imaginary part, and take every second eigenvalue to get the N eigenvalues.
+        all_eigenvalues.sort_by(|a, b| {
+            a.re.partial_cmp(&b.re).unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.im.partial_cmp(&b.im).unwrap_or(std::cmp::Ordering::Equal))
+        });
+        let mut eigenvalues = Vec::new();
+        for i in (0..all_eigenvalues.len()).step_by(2) {
+            eigenvalues.push(all_eigenvalues[i]);
+        }
 
-        // Unfold the spectrum: compute mean spacing for this slice
+        // Unfold the spectrum: compute mean spacing for this slice based on real parts
         let mut sum_spacing = 0.0;
         let mut count_spacing = 0.0;
         if eigenvalues.len() > 1 {
             for i in 0..eigenvalues.len()-1 {
-                sum_spacing += eigenvalues[i+1] - eigenvalues[i];
+                sum_spacing += eigenvalues[i+1].re - eigenvalues[i].re;
                 count_spacing += 1.0;
             }
         }
@@ -221,12 +246,20 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
             // Normalized by mean_spacing to unfold the spectrum!
             let mut spacing = 0.0;
             if current_idx + 1 < eigenvalues.len() {
-                spacing = (eigenvalues[current_idx + 1] - eigenvalues[current_idx]) / mean_spacing;
+                spacing = (eigenvalues[current_idx + 1].re - eigenvalues[current_idx].re) / mean_spacing;
             }
             
             // In a pure GUE spectrum, nodes aren't inherently "jammed" like in the integer heuristic,
             // but we can map jamming to a threshold of the spacing, or leave it 0 since it's now a continuous spectrum.
             let jammed = if spacing > 0.0 { 0 } else { 1 };
+            
+            // Thermodynamic Filter (Born Rule Stratification)
+            // The observer is bound to the positive-definite subspace. 
+            // Exceptional points (broken PT-symmetry) emerge as complex conjugate pairs,
+            // and negative real eigenvalues represent negative-norm ghost states.
+            let complex_im = eigenvalues[current_idx].im;
+            let real_re = eigenvalues[current_idx].re;
+            let is_observable = real_re > 0.0 && complex_im.abs() < 1e-10;
             
             data.push(GUEDataPoint {
                 level: w,
@@ -235,6 +268,9 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
                 local_degree: deg,
                 jammed,
                 eigenvalue_spacing: spacing,
+                is_observable,
+                complex_im,
+                real_re,
             });
         }
         
@@ -245,4 +281,50 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
     log(&format!("Traversal complete. Extracted {} points from the emission spectrum.", data.len()));
     
     serde_wasm_bindgen::to_value(&data).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_unobservable_states_exist() {
+        let mut slice = vec![30, 20, 42, 70]; // Example nodes
+        
+        let size = slice.len();
+        let mut mat_real = DMatrix::from_element(size * 2, size * 2, 0.0);
+        for (i, &a) in slice.iter().enumerate() {
+            let unit_a = address_to_krein_unit(a);
+            let parity_a = krein_bilin(unit_a, KreinCoord(1, 1)) as f64;
+            
+            for (j, &b) in slice.iter().enumerate() {
+                let amp = cross_branch_amplitude(a, b);
+                
+                let c_re = parity_a * amp.re;
+                let c_im = parity_a * amp.im;
+                
+                mat_real[(i, j)] = c_re;
+                mat_real[(i + size, j + size)] = c_re;
+                mat_real[(i, j + size)] = -c_im;
+                mat_real[(i + size, j)] = c_im;
+            }
+        }
+        
+        let eig = mat_real.complex_eigenvalues();
+        let mut all_eigenvalues: Vec<Complex<f64>> = eig.into_iter().copied().collect();
+        all_eigenvalues.sort_by(|a, b| {
+            a.re.partial_cmp(&b.re).unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.im.partial_cmp(&b.im).unwrap_or(std::cmp::Ordering::Equal))
+        });
+        
+        let mut unobservable_count = 0;
+        for i in (0..all_eigenvalues.len()).step_by(2) {
+            let val = all_eigenvalues[i];
+            if val.re <= 0.0 || val.im.abs() > 1e-10 {
+                unobservable_count += 1;
+            }
+        }
+        
+        assert!(unobservable_count > 0, "There should be unobservable states (negative/complex ghost artifacts) for this slice!");
+    }
 }

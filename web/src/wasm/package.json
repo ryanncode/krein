@@ -1,0 +1,15 @@
+{
+  "name": "krein",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "krein_bg.wasm",
+    "krein.js",
+    "krein.d.ts"
+  ],
+  "main": "krein.js",
+  "types": "krein.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
