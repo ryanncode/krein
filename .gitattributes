@@ -1,0 +1,5 @@
+*.lock linguist-generated
+web/src/wasm/* linguist-generated
+scripts/* linguist-generated
+web/package-lock.json linguist-generated
+Cargo.lock linguist-generated
