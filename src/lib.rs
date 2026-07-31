@@ -14,6 +14,9 @@ pub struct GUEDataPoint {
     pub is_observable: bool,
     pub complex_im: f64,
     pub real_re: f64,
+    pub thermal_weight: f64,
+    pub loschmidt_re: f64,
+    pub loschmidt_im: f64,
 }
 
 fn distinct_prime_factors(mut n: u64) -> Vec<u64> {
@@ -168,7 +171,7 @@ fn next_slice(slice: &[u64]) -> Vec<u64> {
 }
 
 #[wasm_bindgen]
-pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js_sys::Function) -> JsValue {
+pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, time_t: f64, log_cb: &js_sys::Function) -> JsValue {
     console_error_panic_hook::set_once();
     
     let log = |msg: &str| {
@@ -204,9 +207,16 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
                 let b = slice[j];
                 let amp = cross_branch_amplitude(a, b);
                 
+                // Thermal weighting for the transition matrix.
+                // The discrete topology natively evaluates at the critical line (beta = 0.5).
+                // To explore away from the critical line, we apply a relative thermal deformation.
+                let thermal_weight_a = (a as f64).powf(-(beta - 0.5));
+                let thermal_weight_b = (b as f64).powf(-(beta - 0.5));
+                let thermal_weight_cross = (thermal_weight_a * thermal_weight_b).sqrt();
+                
                 // Multiply by J-metric (parity_a) to convert Hermitian form H_ij to operator C_ij = J_ii * H_ij
-                let c_re = parity_a * amp.re;
-                let c_im = parity_a * amp.im;
+                let c_re = parity_a * amp.re * thermal_weight_cross;
+                let c_im = parity_a * amp.im * thermal_weight_cross;
                 
                 mat_real[(i, j)] = c_re;
                 mat_real[(i + eig_size, j + eig_size)] = c_re;
@@ -264,16 +274,28 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, log_cb: &js
             let real_re = if current_idx < eigenvalues.len() { eigenvalues[current_idx].re } else { 1.0 };
             let is_observable = real_re > 0.0 && complex_im.abs() < 1e-10;
             
+            // Thermodynamic Phase Transition Metrics (Wei et al.)
+            let thermal_weight = (x as f64).powf(-beta);
+            let ln_x = (x as f64).ln();
+            // e^{-it ln n} = cos(t ln n) - i sin(t ln n)
+            let phase_angle = time_t * ln_x;
+            let loschmidt_re = thermal_weight * phase_angle.cos();
+            let loschmidt_im = thermal_weight * (-phase_angle).sin();
+            
             data.push(GUEDataPoint {
                 level: w,
                 x,
-                amplitude: amp,
+                // Scale structural amplitude by the thermal weight
+                amplitude: amp * thermal_weight,
                 local_degree: deg,
                 jammed,
                 eigenvalue_spacing: spacing,
                 is_observable,
                 complex_im,
                 real_re,
+                thermal_weight,
+                loschmidt_re,
+                loschmidt_im,
             });
         }
         
@@ -329,5 +351,24 @@ mod tests {
         }
         
         assert!(unobservable_count > 0, "There should be unobservable states (negative/complex ghost artifacts) for this slice!");
+    }
+
+    #[test]
+    fn test_thermodynamic_metrics() {
+        let x: u64 = 5;
+        let beta = 0.5;
+        let time_t = 14.1347; // near first Riemann zero
+        
+        let thermal_weight = (x as f64).powf(-beta);
+        let expected_weight = 1.0 / (5.0f64).sqrt();
+        assert!((thermal_weight - expected_weight).abs() < 1e-6);
+        
+        let ln_x = (x as f64).ln();
+        let phase_angle = time_t * ln_x;
+        let loschmidt_re = thermal_weight * phase_angle.cos();
+        let loschmidt_im = thermal_weight * (-phase_angle).sin();
+        
+        assert!(!loschmidt_re.is_nan());
+        assert!(!loschmidt_im.is_nan());
     }
 }

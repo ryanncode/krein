@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const run_compute_wasm: (a: number, b: number, c: number, d: any) => any;
+export const run_compute_wasm: (a: number, b: number, c: number, d: number, e: number, f: any) => any;
 export const wasm_bindgen__convert__closures_____invoke__h0c0528f7dd67190b: (a: number, b: number, c: any) => [number, number];
 export const wasm_bindgen__convert__closures_____invoke__h174f83404c727901: (a: number, b: number, c: any, d: any) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;

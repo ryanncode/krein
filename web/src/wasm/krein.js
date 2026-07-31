@@ -3,13 +3,15 @@
 /**
  * @param {string} start_val_str
  * @param {number} max_steps
+ * @param {number} beta
+ * @param {number} time_t
  * @param {Function} log_cb
  * @returns {Promise<any>}
  */
-export function run_compute_wasm(start_val_str, max_steps, log_cb) {
+export function run_compute_wasm(start_val_str, max_steps, beta, time_t, log_cb) {
     const ptr0 = passStringToWasm0(start_val_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.run_compute_wasm(ptr0, len0, max_steps, log_cb);
+    const ret = wasm.run_compute_wasm(ptr0, len0, max_steps, beta, time_t, log_cb);
     return ret;
 }
 function __wbg_get_imports() {

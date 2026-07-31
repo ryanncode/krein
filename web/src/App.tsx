@@ -15,6 +15,9 @@ interface GUEDataPoint {
   is_observable: boolean;
   complex_im: number;
   real_re: number;
+  thermal_weight: number;
+  loschmidt_re: number;
+  loschmidt_im: number;
 }
 
 function App() {
@@ -24,6 +27,8 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [logs, setLogs] = useState<string[]>([])
+  const [beta, setBeta] = useState<number>(0.5)
+  const [timeT, setTimeT] = useState<number>(14.134)
   const [currentPage, setCurrentPage] = useState(1)
   const [showUnobservable, setShowUnobservable] = useState(false)
   const [activeTerm, setActiveTerm] = useState<string | null>(null)
@@ -164,7 +169,7 @@ function App() {
       const logger = (msg: string) => {
         setLogs(prev => [...prev, msg])
       }
-      const res = await run_compute_wasm(startVal, maxSteps, logger)
+      const res = await run_compute_wasm(startVal, maxSteps, beta, timeT, logger)
       setResult(res)
     } catch (e: any) {
       console.error(e)
@@ -311,6 +316,26 @@ function App() {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af' }}>Inverse Temp (β)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            value={beta} 
+            onChange={e => setBeta(Number(e.target.value))}
+            style={{ padding: '0.5rem', border: '1px solid #4b5563', width: '100px', fontFamily: 'monospace', background: '#1e1e24', color: '#f3f4f6', borderRadius: '4px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af' }}>Time (t)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            value={timeT} 
+            onChange={e => setTimeT(Number(e.target.value))}
+            style={{ padding: '0.5rem', border: '1px solid #4b5563', width: '100px', fontFamily: 'monospace', background: '#1e1e24', color: '#f3f4f6', borderRadius: '4px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af' }}>Load Preset</label>
           <select 
             value={`${startVal},${maxSteps}`}
@@ -385,6 +410,8 @@ function App() {
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Local Degree</th>
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Jammed</th>
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Spacing</th>
+                  <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Loschmidt Re</th>
+                  <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Loschmidt Im</th>
                   {showUnobservable && (
                     <>
                       <th style={{ padding: '0.5rem', color: '#fb923c' }}>Real (Ghost)</th>
@@ -402,6 +429,8 @@ function App() {
                     <td style={{ padding: '0.5rem' }}>{row.local_degree}</td>
                     <td style={{ padding: '0.5rem', color: row.jammed ? '#ef4444' : '#10b981' }}>{row.jammed}</td>
                     <td style={{ padding: '0.5rem' }}>{row.eigenvalue_spacing.toFixed(4)}</td>
+                    <td style={{ padding: '0.5rem', color: '#34d399' }}>{row.loschmidt_re.toFixed(4)}</td>
+                    <td style={{ padding: '0.5rem', color: '#38bdf8' }}>{row.loschmidt_im.toFixed(4)}</td>
                     {showUnobservable && (
                       <>
                         <td style={{ padding: '0.5rem', color: row.real_re <= 0 ? '#fb923c' : '#e2e8f0' }}>
