@@ -17,6 +17,7 @@ pub struct GUEDataPoint {
     pub thermal_weight: f64,
     pub loschmidt_re: f64,
     pub loschmidt_im: f64,
+    pub spectral_integrality_deficit: f64,
 }
 
 fn distinct_prime_factors(mut n: u64) -> Vec<u64> {
@@ -282,6 +283,8 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, 
             let loschmidt_re = thermal_weight * phase_angle.cos();
             let loschmidt_im = thermal_weight * (-phase_angle).sin();
             
+            let spectral_integrality_deficit = (real_re - real_re.round()).abs();
+            
             data.push(GUEDataPoint {
                 level: w,
                 x,
@@ -296,6 +299,7 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, 
                 thermal_weight,
                 loschmidt_re,
                 loschmidt_im,
+                spectral_integrality_deficit,
             });
         }
         

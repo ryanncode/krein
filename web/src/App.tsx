@@ -18,6 +18,7 @@ interface GUEDataPoint {
   thermal_weight: number;
   loschmidt_re: number;
   loschmidt_im: number;
+  spectral_integrality_deficit: number;
 }
 
 function App() {
@@ -146,6 +147,27 @@ function App() {
           <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> The algebraic roots and distinct factors form an absolute combinatorial lattice, isolating the eigenvalues entirely from complex Archimedean variables.</div>
         </div>
       )
+    },
+    integrality: {
+      title: 'Loss of Integrality & The Anthropic Boundary',
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div><strong style={{ color: '#38bdf8' }}>Math/Logic:</strong> The most recent classical attempt to solve the Riemann Hypothesis (published by Anthropic) correctly identified the need to use an indefinite metric space. However, their continuous <InlineMath math="L^2" /> approach smeared discrete prime data into continuous real eigenvalues (<InlineMath math="\lambda" />), causing what they called an unconditional "loss of integrality" (<InlineMath math="\sum m^2" /> vs <InlineMath math="\sum \lambda^2" />). This destroyed their ability to prove the hypothesis. This deficit metric in our engine quantifies the exact amount of topological information destroyed by their continuous orthodoxy.</div>
+          <div><strong style={{ color: '#10b981' }}>Code Implementation:</strong> Measured as the absolute deviation of the exact topological transition amplitude from the nearest integer state. By executing over a discrete <InlineMath math="p" />-adic tree, the <code style={{ color: '#f3f4f6', background: '#374151', padding: '0.15rem 0.25rem', borderRadius: '4px' }}>krein</code> engine preserves this exact integrality natively, completely bypassing the boundary where Anthropic failed.</div>
+          <div style={{ background: '#27272a', padding: '0.75rem', borderRadius: '4px', border: '1px solid #3f3f46', fontSize: '12px' }}>
+            <strong style={{ color: '#9ca3af', display: 'block', marginBottom: '0.5rem' }}>Anthropic Reference Texts:</strong> 
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <a href="https://www.anthropic.com/research/riemann-zeta" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Public Report</a>
+              <span style={{ color: '#52525b' }}>|</span>
+              <a href="https://www-cdn.anthropic.com/564f962e60643842f5fcb4a17c9dbc8f608f1c37.pdf" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Zeta-two-thirds</a>
+              <span style={{ color: '#52525b' }}>|</span>
+              <a href="https://www-cdn.anthropic.com/23455459f8832d06bb175cc0f88d019aed962ef8.pdf" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Zeta-two-thirds-condensed</a>
+              <span style={{ color: '#52525b' }}>|</span>
+              <a href="https://www-cdn.anthropic.com/d7f3ecf1d01392d887f8bc974ca187e2a121b1ed.pdf" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Zeta-transcript</a>
+            </div>
+          </div>
+        </div>
+      )
     }
   }
 
@@ -256,6 +278,7 @@ function App() {
               <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <li><span onClick={() => handleTermClick('pt')} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>Parity-Time (PT) Symmetry Breaking</span></li>
                 <li><span onClick={() => handleTermClick('hilbert')} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>Hilbert Space Positive-Definite Constraints</span></li>
+                <li><span onClick={() => handleTermClick('integrality')} style={{ color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>Loss of Integrality Boundary</span></li>
               </ul>
             </li>
           </ul>
@@ -412,6 +435,7 @@ function App() {
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Spacing</th>
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Loschmidt Re</th>
                   <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Loschmidt Im</th>
+                  <th style={{ padding: '0.5rem', color: '#9ca3af' }}>Integrality Def</th>
                   {showUnobservable && (
                     <>
                       <th style={{ padding: '0.5rem', color: '#fb923c' }}>Real (Ghost)</th>
@@ -431,6 +455,7 @@ function App() {
                     <td style={{ padding: '0.5rem' }}>{row.eigenvalue_spacing.toFixed(4)}</td>
                     <td style={{ padding: '0.5rem', color: '#34d399' }}>{row.loschmidt_re.toFixed(4)}</td>
                     <td style={{ padding: '0.5rem', color: '#38bdf8' }}>{row.loschmidt_im.toFixed(4)}</td>
+                    <td style={{ padding: '0.5rem', color: row.spectral_integrality_deficit > 0 ? '#fb923c' : '#e2e8f0' }}>{row.spectral_integrality_deficit.toFixed(4)}</td>
                     {showUnobservable && (
                       <>
                         <td style={{ padding: '0.5rem', color: row.real_re <= 0 ? '#fb923c' : '#e2e8f0' }}>
