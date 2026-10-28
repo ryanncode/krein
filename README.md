@@ -12,7 +12,7 @@ It calculates the arithmetic divergence across the lattice using a combinatorial
 
 ## Native Krein Mechanics vs. Classical Boundaries (OpenAI & Anthropic)
 
-Recent high-profile research from OpenAI (October 2026) established the Quasi-Riemann Hypothesis ($\operatorname{Re}(s) > 7/8$ and $\operatorname{Re}(s) > 11/12$), proving the absence of zeros in these half-planes using Kubota-Patterson cubic theta functions and character large sieves. However, as noted by leading number theorists, classical positive-definite $L^2$ Cauchy-Schwarz bounds encounter a hard positivity wall at $7/8$, preventing continuous methods from compressing all the way to the critical line $\operatorname{Re}(s) = 1/2$.
+Recent high-profile research from OpenAI (October 2026) established the Quasi-Riemann Hypothesis ($\mathrm{Re}(s) > 7/8$ and $\mathrm{Re}(s) > 11/12$), proving the absence of zeros in these half-planes using Kubota-Patterson cubic theta functions and character large sieves. However, as noted by leading number theorists, classical positive-definite $L^2$ Cauchy-Schwarz bounds encounter a hard positivity wall at $7/8$, preventing continuous methods from compressing all the way to the critical line $\mathrm{Re}(s) = 1/2$.
 
 Similarly, previous research from Anthropic demonstrated that engaging with indefinite (negative-definite) subspaces is required to make headway, but their continuous $L^2$ approach resulted in an unconditional "loss of integrality" (smearing discrete prime data into continuous real eigenvalues) by treating the indefinite metric merely as an upper bound constraint.
 
