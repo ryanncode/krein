@@ -19,6 +19,7 @@ interface GUEDataPoint {
   loschmidt_re: number;
   loschmidt_im: number;
   spectral_integrality_deficit: number;
+  is_classically_certified: boolean;
 }
 
 function App() {
@@ -339,13 +340,31 @@ function App() {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af' }}>Inverse Temp (β)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af' }}>Inverse Temp (β)</label>
+            <span style={{
+              fontSize: '10px',
+              padding: '0.15rem 0.4rem',
+              borderRadius: '4px',
+              fontWeight: 600,
+              background: Math.abs(beta - 0.5) < 0.001 ? '#0369a1' : beta >= 0.875 ? '#065f46' : '#854d0e',
+              color: Math.abs(beta - 0.5) < 0.001 ? '#7dd3fc' : beta >= 0.875 ? '#6ee7b7' : '#fde047',
+            }}>
+              {Math.abs(beta - 0.5) < 0.001
+                ? 'Critical Line'
+                : beta >= 11 / 12
+                ? 'OpenAI Re > 11/12'
+                : beta >= 7 / 8
+                ? 'OpenAI Re > 7/8'
+                : 'Positivity Barrier Gap'}
+            </span>
+          </div>
           <input 
             type="number" 
             step="0.01"
             value={beta} 
             onChange={e => setBeta(Number(e.target.value))}
-            style={{ padding: '0.5rem', border: '1px solid #4b5563', width: '100px', fontFamily: 'monospace', background: '#1e1e24', color: '#f3f4f6', borderRadius: '4px' }}
+            style={{ padding: '0.5rem', border: '1px solid #4b5563', width: '120px', fontFamily: 'monospace', background: '#1e1e24', color: '#f3f4f6', borderRadius: '4px' }}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

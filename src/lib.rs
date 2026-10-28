@@ -18,6 +18,27 @@ pub struct GUEDataPoint {
     pub loschmidt_re: f64,
     pub loschmidt_im: f64,
     pub spectral_integrality_deficit: f64,
+    pub is_classically_certified: bool,
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+pub enum SpectralRegime {
+    CriticalLine,             // beta == 0.5
+    ClassicalBarrierGap,      // 0.5 < beta < 0.875
+    OpenAISevenEighthsZone,   // 0.875 <= beta < 0.9167
+    OpenAIElevenTwelfthsZone, // beta >= 0.9167
+}
+
+pub fn classify_regime(beta: f64) -> SpectralRegime {
+    if (beta - 0.5).abs() < 1e-4 {
+        SpectralRegime::CriticalLine
+    } else if beta >= 11.0 / 12.0 {
+        SpectralRegime::OpenAIElevenTwelfthsZone
+    } else if beta >= 7.0 / 8.0 {
+        SpectralRegime::OpenAISevenEighthsZone
+    } else {
+        SpectralRegime::ClassicalBarrierGap
+    }
 }
 
 fn distinct_prime_factors(mut n: u64) -> Vec<u64> {
@@ -184,6 +205,13 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, 
     let start_val = start_val_str.parse::<u64>().unwrap_or(27720000);
     log(&format!("Starting Semantic Address Root: {}", start_val));
     
+    let regime = classify_regime(beta);
+    let is_classically_certified = matches!(
+        regime,
+        SpectralRegime::OpenAISevenEighthsZone | SpectralRegime::OpenAIElevenTwelfthsZone
+    );
+    log(&format!("Operating Regime: {:?} (Classically Certified: {})", regime, is_classically_certified));
+    
     let mut data: Vec<GUEDataPoint> = Vec::new();
     let mut slice = vec![start_val];
     let mut n = 0;
@@ -300,6 +328,7 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, 
                 loschmidt_re,
                 loschmidt_im,
                 spectral_integrality_deficit,
+                is_classically_certified,
             });
         }
         
@@ -374,5 +403,13 @@ mod tests {
         
         assert!(!loschmidt_re.is_nan());
         assert!(!loschmidt_im.is_nan());
+    }
+
+    #[test]
+    fn test_openai_quasi_rh_regimes() {
+        assert_eq!(classify_regime(0.5), SpectralRegime::CriticalLine);
+        assert_eq!(classify_regime(0.75), SpectralRegime::ClassicalBarrierGap);
+        assert_eq!(classify_regime(0.875), SpectralRegime::OpenAISevenEighthsZone);
+        assert_eq!(classify_regime(0.92), SpectralRegime::OpenAIElevenTwelfthsZone);
     }
 }
