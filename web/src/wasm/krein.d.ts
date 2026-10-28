@@ -3,11 +3,14 @@
 
 export function run_compute_wasm(start_val_str: string, max_steps: number, beta: number, time_t: number, log_cb: Function): Promise<any>;
 
+export function run_zero_resonance_wasm(primorial_bound: number, t_min: number, t_max: number, steps: number, sigma: number): any;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly run_compute_wasm: (a: number, b: number, c: number, d: number, e: number, f: any) => any;
+    readonly run_zero_resonance_wasm: (a: number, b: number, c: number, d: number, e: number) => any;
     readonly wasm_bindgen__convert__closures_____invoke__h0c0528f7dd67190b: (a: number, b: number, c: any) => [number, number];
     readonly wasm_bindgen__convert__closures_____invoke__h174f83404c727901: (a: number, b: number, c: any, d: any) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

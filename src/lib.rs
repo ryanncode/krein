@@ -41,6 +41,133 @@ pub fn classify_regime(beta: f64) -> SpectralRegime {
     }
 }
 
+pub const CERTIFIED_ZEROS: [f64; 15] = [
+    14.134725141735,
+    21.022039638772,
+    25.010857580146,
+    30.424876125860,
+    32.935061587739,
+    37.586178158826,
+    40.918719012147,
+    43.327073280915,
+    48.005150881167,
+    49.773832477672,
+    52.970321477714,
+    56.446247697063,
+    59.347044002602,
+    60.831778524609,
+    65.112544048082,
+];
+
+#[derive(Serialize)]
+pub struct ZeroResonancePoint {
+    pub t: f64,
+    pub density: f64,
+    pub is_peak: bool,
+    pub nearest_zero: f64,
+    pub error: f64,
+}
+
+#[wasm_bindgen]
+pub fn run_zero_resonance_wasm(
+    primorial_bound: u32,
+    t_min: f64,
+    t_max: f64,
+    steps: usize,
+    sigma: f64,
+) -> JsValue {
+    let p_bound = std::cmp::max(primorial_bound, 30);
+    let mut sieve = vec![true; (p_bound + 1) as usize];
+    sieve[0] = false;
+    if p_bound >= 1 { sieve[1] = false; }
+    let sqrt_limit = (p_bound as f64).sqrt() as usize;
+    for p in 2..=sqrt_limit {
+        if sieve[p] {
+            let mut mult = p * p;
+            while mult <= p_bound as usize {
+                sieve[mult] = false;
+                mult += p;
+            }
+        }
+    }
+
+    let primes: Vec<u64> = (2..=p_bound as usize)
+        .filter(|&p| sieve[p])
+        .map(|p| p as u64)
+        .collect();
+
+    let max_power_bound = 100_000u64;
+    let mut u_vals = Vec::new();
+    let mut eff_weights = Vec::new();
+
+    for &p in &primes {
+        let mut pk = p;
+        let ln_p = (p as f64).ln();
+        while pk <= max_power_bound {
+            let u = (pk as f64).ln();
+            let raw_w = ln_p / (pk as f64).sqrt();
+            let damping = (-0.5 * (sigma * u).powi(2)).exp();
+            u_vals.push(u);
+            eff_weights.push(raw_w * damping);
+            if let Some(next_pk) = pk.checked_mul(p) {
+                pk = next_pk;
+            } else {
+                break;
+            }
+        }
+    }
+
+    let step_count = std::cmp::max(steps, 100);
+    let dt = (t_max - t_min) / (step_count - 1) as f64;
+    let mut raw_density = Vec::with_capacity(step_count);
+    let pi = std::f64::consts::PI;
+
+    for i in 0..step_count {
+        let t = t_min + i as f64 * dt;
+        let mut osc = 0.0;
+        for j in 0..u_vals.len() {
+            osc += eff_weights[j] * (t * u_vals[j]).cos();
+        }
+        let smooth = if t > 2.0 * pi {
+            (1.0 / (2.0 * pi)) * (t / (2.0 * pi)).ln()
+        } else {
+            0.0
+        };
+        let dens = smooth - (1.0 / pi) * osc;
+        raw_density.push((t, dens));
+    }
+
+    let mut points = Vec::with_capacity(step_count);
+    for i in 0..step_count {
+        let (t, dens) = raw_density[i];
+        let is_peak = if i > 0 && i < step_count - 1 {
+            dens > raw_density[i - 1].1 && dens > raw_density[i + 1].1 && dens > 0.25
+        } else {
+            false
+        };
+
+        let mut nearest_zero = CERTIFIED_ZEROS[0];
+        let mut min_diff = (t - nearest_zero).abs();
+        for &z in &CERTIFIED_ZEROS {
+            let diff = (t - z).abs();
+            if diff < min_diff {
+                min_diff = diff;
+                nearest_zero = z;
+            }
+        }
+
+        points.push(ZeroResonancePoint {
+            t,
+            density: dens,
+            is_peak,
+            nearest_zero,
+            error: min_diff,
+        });
+    }
+
+    serde_wasm_bindgen::to_value(&points).unwrap()
+}
+
 fn distinct_prime_factors(mut n: u64) -> Vec<u64> {
     let mut factors = Vec::new();
     if n <= 1 { return factors; }
@@ -411,5 +538,11 @@ mod tests {
         assert_eq!(classify_regime(0.75), SpectralRegime::ClassicalBarrierGap);
         assert_eq!(classify_regime(0.875), SpectralRegime::OpenAISevenEighthsZone);
         assert_eq!(classify_regime(0.92), SpectralRegime::OpenAIElevenTwelfthsZone);
+    }
+
+    #[test]
+    fn test_certified_zeros_contain_gamma_1() {
+        assert!((CERTIFIED_ZEROS[0] - 14.134725).abs() < 1e-5);
+        assert!((CERTIFIED_ZEROS[1] - 21.022039).abs() < 1e-5);
     }
 }

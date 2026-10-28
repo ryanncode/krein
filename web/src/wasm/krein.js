@@ -14,6 +14,19 @@ export function run_compute_wasm(start_val_str, max_steps, beta, time_t, log_cb)
     const ret = wasm.run_compute_wasm(ptr0, len0, max_steps, beta, time_t, log_cb);
     return ret;
 }
+
+/**
+ * @param {number} primorial_bound
+ * @param {number} t_min
+ * @param {number} t_max
+ * @param {number} steps
+ * @param {number} sigma
+ * @returns {any}
+ */
+export function run_zero_resonance_wasm(primorial_bound, t_min, t_max, steps, sigma) {
+    const ret = wasm.run_zero_resonance_wasm(primorial_bound, t_min, t_max, steps, sigma);
+    return ret;
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -132,7 +145,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 20, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 22, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h0c0528f7dd67190b);
             return ret;
         },
