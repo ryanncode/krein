@@ -336,6 +336,8 @@ function App() {
           Interactive browser workbench for discrete <InlineMath math="J" />-self-adjoint divisibility operators and the Weil explicit formula for Riemann zeta zeros.
         </p>
         <div style={{ display: 'flex', gap: '1rem', fontSize: '13px', alignItems: 'center' }}>
+          <a href="https://thing.rodeo/tensor-sieve/" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Research Article</a>
+          <span style={{ color: '#52525b' }}>|</span>
           <a href="https://github.com/ryanncode/krein" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Krein Engine (Rust/WASM)</a>
           <span style={{ color: '#52525b' }}>|</span>
           <a href="https://github.com/ryanncode/tensor-sieve" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>Tensor-Sieve Formalization (Lean 4)</a>
