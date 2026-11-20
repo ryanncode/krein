@@ -24,7 +24,7 @@ pub struct GUEDataPoint {
 #[derive(Serialize, Clone, Copy, Debug, PartialEq)]
 pub enum SpectralRegime {
     CriticalLine,             // beta == 0.5
-    ClassicalBarrierGap,      // 0.5 < beta < 0.875
+    ClassicalBarrierGap,      // 0.5 < beta < 0.875 (below cubic-theta benchmark)
     OpenAISevenEighthsZone,   // 0.875 <= beta < 0.9167
     OpenAIElevenTwelfthsZone, // beta >= 0.9167
 }
@@ -39,6 +39,54 @@ pub fn classify_regime(beta: f64) -> SpectralRegime {
     } else {
         SpectralRegime::ClassicalBarrierGap
     }
+}
+
+/// Theoretical adjacent level-spacing ratio benchmarks <r> (Atas et al. 2013).
+pub const R_POISSON: f64 = 0.38629;
+pub const R_GOE: f64 = 0.5307;
+pub const R_GUE: f64 = 0.5996;
+
+/// Compute the unfolding-free adjacent level-spacing ratio
+/// `<r> = mean(min(s_n, s_{n+1}) / max(s_n, s_{n+1}))` over distinct sorted real levels.
+pub fn adjacent_spacing_ratio(levels: &[f64]) -> Option<f64> {
+    let mut sorted: Vec<f64> = levels.iter().copied().filter(|x| x.is_finite()).collect();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let mut uniq = Vec::with_capacity(sorted.len());
+    for v in sorted {
+        if uniq.last().map_or(true, |&prev: &f64| (v - prev).abs() > 1e-8) {
+            uniq.push(v);
+        }
+    }
+    if uniq.len() < 3 {
+        return None;
+    }
+    let spacings: Vec<f64> = uniq.windows(2).map(|w| w[1] - w[0]).collect();
+    let mut sum = 0.0;
+    let mut count = 0usize;
+    for w in spacings.windows(2) {
+        let hi = w[0].max(w[1]);
+        let lo = w[0].min(w[1]);
+        if hi > 1e-8 {
+            sum += lo / hi;
+            count += 1;
+        }
+    }
+    if count == 0 { None } else { Some(sum / count as f64) }
+}
+
+/// Classify a computed `<r>` value against standard random-matrix universality classes.
+pub fn classify_level_statistics(mean_r: f64) -> &'static str {
+    let candidates = [
+        ("Poisson (integrable)", (mean_r - R_POISSON).abs()),
+        ("GOE (time-reversal symmetric)", (mean_r - R_GOE).abs()),
+        ("GUE (broken time-reversal)", (mean_r - R_GUE).abs()),
+        ("Picket-fence / rigid", (mean_r - 1.0).abs()),
+    ];
+    candidates
+        .into_iter()
+        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(label, _)| label)
+        .unwrap_or("Unknown")
 }
 
 pub const CERTIFIED_ZEROS: [f64; 15] = [
@@ -68,14 +116,19 @@ pub struct ZeroResonancePoint {
     pub error: f64,
 }
 
-#[wasm_bindgen]
-pub fn run_zero_resonance_wasm(
+/// Pure-Rust evaluation of the classical Gaussian-damped Weil explicit-formula
+/// prime-power Fourier cosine sum:
+///   R(t) = (1 / 2pi) ln(t / 2pi) - (1 / pi) sum_{p^k <= B} (ln p / p^{k/2}) exp(-(sigma ln p^k)^2 / 2) cos(t ln p^k).
+///
+/// Note: This resonance scanner is mathematically decoupled from the discrete
+/// Krein slice-matrix diagonalization in `run_compute_wasm`.
+pub fn compute_weil_zero_resonance(
     primorial_bound: u32,
     t_min: f64,
     t_max: f64,
     steps: usize,
     sigma: f64,
-) -> JsValue {
+) -> Vec<ZeroResonancePoint> {
     let p_bound = std::cmp::max(primorial_bound, 30);
     let mut sieve = vec![true; (p_bound + 1) as usize];
     sieve[0] = false;
@@ -165,6 +218,18 @@ pub fn run_zero_resonance_wasm(
         });
     }
 
+    points
+}
+
+#[wasm_bindgen]
+pub fn run_zero_resonance_wasm(
+    primorial_bound: u32,
+    t_min: f64,
+    t_max: f64,
+    steps: usize,
+    sigma: f64,
+) -> JsValue {
+    let points = compute_weil_zero_resonance(primorial_bound, t_min, t_max, steps, sigma);
     serde_wasm_bindgen::to_value(&points).unwrap()
 }
 
@@ -468,9 +533,115 @@ pub async fn run_compute_wasm(start_val_str: String, max_steps: u32, beta: f64, 
     serde_wasm_bindgen::to_value(&data).unwrap()
 }
 
+/// Build the diagonal Krein parity matrix `J`, Hermitian matrix `H`, and
+/// `J`-self-adjoint slice operator `C = J * H` matching `TensorSieve/Operator.lean`.
+pub fn build_slice_matrices(
+    slice: &[u64],
+    beta: f64,
+) -> (DMatrix<Complex<f64>>, DMatrix<Complex<f64>>, DMatrix<Complex<f64>>) {
+    let n = slice.len();
+    let mut j_mat = DMatrix::from_element(n, n, Complex::new(0.0, 0.0));
+    let mut h_mat = DMatrix::from_element(n, n, Complex::new(0.0, 0.0));
+    let mut c_mat = DMatrix::from_element(n, n, Complex::new(0.0, 0.0));
+
+    for i in 0..n {
+        let a = slice[i];
+        let unit_a = address_to_krein_unit(a);
+        let parity_a = krein_bilin(unit_a, KreinCoord(1, 1)) as f64;
+        j_mat[(i, i)] = Complex::new(parity_a, 0.0);
+
+        for j in 0..n {
+            let b = slice[j];
+            let amp = cross_branch_amplitude(a, b);
+            let thermal_weight_a = (a as f64).powf(-(beta - 0.5));
+            let thermal_weight_b = (b as f64).powf(-(beta - 0.5));
+            let thermal_weight_cross = (thermal_weight_a * thermal_weight_b).sqrt();
+
+            let h_ij = Complex::new(amp.re * thermal_weight_cross, amp.im * thermal_weight_cross);
+            h_mat[(i, j)] = h_ij;
+            c_mat[(i, j)] = Complex::new(parity_a * h_ij.re, parity_a * h_ij.im);
+        }
+    }
+
+    (j_mat, h_mat, c_mat)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_krein_j_self_adjoint_exact() {
+        for slice in [vec![30, 20, 42, 70], vec![210, 105, 70, 42, 30, 14, 15]] {
+            for beta in [0.5, 0.75] {
+                let (j_mat, h_mat, c_mat) = build_slice_matrices(&slice, beta);
+                let n = slice.len();
+                // J^2 == I
+                let j_sq = &j_mat * &j_mat;
+                for i in 0..n {
+                    for k in 0..n {
+                        let expected = if i == k { 1.0 } else { 0.0 };
+                        assert!((j_sq[(i, k)] - Complex::new(expected, 0.0)).norm() < 1e-12);
+                    }
+                }
+                // H^H == H
+                let h_adj = h_mat.adjoint();
+                for i in 0..n {
+                    for k in 0..n {
+                        assert!((h_mat[(i, k)] - h_adj[(i, k)]).norm() < 1e-12);
+                    }
+                }
+                // J * C == C^H * J
+                let lhs = &j_mat * &c_mat;
+                let rhs = c_mat.adjoint() * &j_mat;
+                for i in 0..n {
+                    for k in 0..n {
+                        assert!(
+                            (lhs[(i, k)] - rhs[(i, k)]).norm() < 1e-12,
+                            "J-self-adjointness failed at ({}, {})",
+                            i,
+                            k
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_adjacent_spacing_ratio_benchmarks() {
+        // Uniform picket fence has <r> = 1.0
+        let picket: Vec<f64> = (0..20).map(|i| i as f64).collect();
+        let r_picket = adjacent_spacing_ratio(&picket).unwrap();
+        assert!((r_picket - 1.0).abs() < 1e-12);
+        assert_eq!(classify_level_statistics(r_picket), "Picket-fence / rigid");
+
+        // Certified Riemann zeros gamma_1..gamma_15 sit near GUE (<r> ~ 0.6)
+        let r_zeros = adjacent_spacing_ratio(&CERTIFIED_ZEROS).unwrap();
+        assert!(r_zeros > 0.45 && r_zeros < 0.75, "Unexpected <r>={}", r_zeros);
+        assert_eq!(classify_level_statistics(R_GUE), "GUE (broken time-reversal)");
+        assert_eq!(classify_level_statistics(R_GOE), "GOE (time-reversal symmetric)");
+        assert_eq!(classify_level_statistics(R_POISSON), "Poisson (integrable)");
+    }
+
+    #[test]
+    fn test_weil_zero_resonance_matches_first_five_zeros() {
+        let pts = compute_weil_zero_resonance(500, 12.0, 36.0, 2000, 0.15);
+        let peaks: Vec<f64> = pts.iter().filter(|p| p.is_peak).map(|p| p.t).collect();
+        assert!(!peaks.is_empty());
+        for &gamma in &CERTIFIED_ZEROS[0..5] {
+            let min_err = peaks
+                .iter()
+                .map(|&t| (t - gamma).abs())
+                .fold(f64::INFINITY, f64::min);
+            assert!(
+                min_err < 0.25,
+                "Expected Weil cosine-sum peak near gamma={}, min_err={}",
+                gamma,
+                min_err
+            );
+        }
+    }
 
     #[test]
     fn test_unobservable_states_exist() {

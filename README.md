@@ -1,47 +1,58 @@
 # krein
 
-**krein** is a high-performance WebAssembly (WASM) computational engine and React visualization suite for the `tensor-sieve` formalization project.
+`krein` is a Rust/WebAssembly compute engine and React web application for exploring finite-dimensional Krein-space operators on integer divisibility graphs, alongside an interactive evaluator for the Weil explicit formula. Its algebraic definitions and $J$-self-adjointness theorems are formally verified in the companion Lean 4 repository [tensor-sieve](https://github.com/ryanncode/tensor-sieve).
 
-While the [tensor-sieve](https://github.com/ryanncode/tensor-sieve) Lean 4 repository provides the rigorous **Formal Theoretical Warrant** for non-Archimedean kinematics, `krein` provides the **physical execution layer**, bringing the mathematics directly into the browser.
+## What the Application Computes
 
-## The Computational Engine
+The interface contains two independent numerical tools and a mathematical guide:
 
-The engine is written in Rust and compiled to WebAssembly. It dynamically evaluates the topological tension of a given integer (Semantic Root) transversing the $p$-adic Bruhat-Tits tree. 
+### 1. Slice Operator & Spacing (`run_compute_wasm`, Tab 1)
+Given a composite starting integer $N$ and a traversal depth, the engine generates downward divisibility slices by dividing each integer in the current level by each of its distinct prime factors. Every integer $x$ within a single level shares the same prime factor count with multiplicity, $\Omega(x) = \sum_p v_p(x)$.
 
-It calculates the arithmetic divergence across the lattice using a combinatorial Laplacian, mapping discrete delta constraints into a continuous eigenvalue spectrum. This proves empirically that **Gaussian Unitary Ensemble (GUE) Level Spacing** emerges natively from discrete grammatical arithmetic friction.
+On each slice, the engine constructs:
+- A Hermitian coherence matrix $H$ whose real entries depend on the shared factor depth $\Omega(\gcd(a,b))$ minus the $p$-adic $L^1$ distance $d(a,b) = \sum_p |v_p(a) - v_p(b)|$, and whose imaginary entries carry an antisymmetric sign $\pm i\,d(a,b)$ determined by whether $a > b$.
+- A diagonal parity involution $J = \mathrm{diag}((-1)^{\Omega(x)})$.
+- The $J$-self-adjoint operator $C = J H$, which satisfies $J C = C^* J$.
 
-## Native Krein Mechanics vs. Classical Boundaries (OpenAI & Anthropic)
+The engine diagonalizes $C$ in WebAssembly and measures the unfolding-free adjacent level-spacing ratio:
+$$\langle r \rangle = \left\langle \frac{\min(s_n, s_{n+1})}{\max(s_n, s_{n+1})} \right\rangle, \qquad s_n = E_{n+1} - E_n$$
+comparing the result against theoretical random-matrix benchmarks: Poisson ($0.3863$) for uncorrelated spectra, GOE ($0.5307$) for time-reversal-symmetric chaotic spectra, and GUE ($0.5996$) for chaotic spectra with broken time-reversal symmetry.
 
-Recent high-profile research from OpenAI (October 2026) established the Quasi-Riemann Hypothesis ($\mathrm{Re}(s) > 7/8$ and $\mathrm{Re}(s) > 11/12$), proving the absence of zeros in these half-planes using Kubota-Patterson cubic theta functions and character large sieves. However, as noted by leading number theorists, classical positive-definite $L^2$ Cauchy-Schwarz bounds encounter a hard positivity wall at $7/8$, preventing continuous methods from compressing all the way to the critical line $\mathrm{Re}(s) = 1/2$.
+**Note on parity signatures:** Within a single horizontal slice where $\Omega(x)$ is constant, $J = \pm I$, so $C = \pm H$ is Hermitian and has only real eigenvalues. Genuinely indefinite Krein signatures (containing both $+1$ and $-1$ parity sectors, where broken-PT complex conjugate pairs emerge on isotropic eigenvectors $[v, v]_J = 0$) arise when combining nodes from adjacent levels of opposite parity. See `tensor-sieve/scripts/adelic_operator_probe.py` for mixed-level tests and null-model comparisons.
 
-Similarly, previous research from Anthropic demonstrated that engaging with indefinite (negative-definite) subspaces is required to make headway, but their continuous $L^2$ approach resulted in an unconditional "loss of integrality" (smearing discrete prime data into continuous real eigenvalues) by treating the indefinite metric merely as an upper bound constraint.
+### 2. Weil Explicit Formula (`run_zero_resonance_wasm`, Tab 2)
+Independently of the slice matrices in Tab 1, Tab 2 evaluates the Gaussian-smoothed prime-power cosine sum from the Weil explicit formula:
+$$R(t) = \frac{1}{2\pi}\ln\!\left(\frac{t}{2\pi}\right) - \frac{1}{\pi}\sum_{p^k \le B} \frac{\ln p}{p^{k/2}} e^{-\frac{1}{2}(\sigma \ln p^k)^2} \cos(t \ln p^k)$$
+Summing over prime powers up to a chosen prime cutoff produces peaks at the imaginary parts $\gamma_1, \dots, \gamma_{10}$ of the non-trivial zeros of $\zeta(s)$, plotted against certified LMFDB reference values.
 
-The `krein` engine does not timidly bound the negative space to establish rank-trace inequalities, nor does it rely on continuous $L^2$ character sieves. It uses the indefinite Krein metric as the **native execution environment**. Because the engine evaluates exact Boolean tensor contractions over the discrete $p$-adic tree, it *never* loses integrality. It explicitly bypasses the continuous localization limits that form the classical positivity wall, utilizing the negative parity phase structurally to enforce exact algebraic wave cancellation and generate the GUE spectrum directly at the critical line ($\beta = 0.5$).
+## Mathematical Motivation
 
-## Usage & Presets
+Analytic and automorphic approaches to the Riemann Hypothesis establish zero-free regions using inequalities on $L$-functions. The complementary Hilbert–Pólya program asks a structural question: whether a natural linear operator exists whose eigenvalues are the ordinates $\gamma_n$, and what arithmetic coupling produces the GUE spacing statistics observed in zeta zeros.
 
-To run the web application locally:
+This repository provides a concrete testbed for studying how discrete $J$-self-adjoint operators behave on arithmetic graphs, when real spectra transition to complex conjugate pairs, and how prime-factor coupling affects level statistics.
+
+## Running Tests and the Web App
+
+### Rust Unit Tests
+```bash
+cargo test
+```
+The test suite verifies $J^2 = I$, $H^* = H$, and $JC = C^*J$ to machine precision across multiple slices, checks the $\langle r \rangle$ benchmark classifier, and validates Weil explicit-formula peak locations against $\gamma_1 \dots \gamma_5$.
+
+### Local Web Preview
+Requires Node.js (v18+):
 ```bash
 cd web
 npm install
 npm run dev
 ```
+Vite serves the app at `http://localhost:5173/krein/`.
 
-### Loading Massive Structural Hubs (Presets)
-
-The user interface allows you to input a **Semantic Root (N)** and a **Depth**. 
-
-To generate sufficient structural entanglement (arithmetic friction) required to trigger quantum level repulsion, the engine must evaluate highly composite numbers. Random primes or sparse branches will not generate the necessary topological jams.
-
-The UI provides instant quick-load presets for massive structural hubs, carefully calculating the optimal depths for each:
-* **Base (27.7M):** $2^6 \times 3^2 \times 5^4 \times 7 \times 11$ (The baseline test root).
-* **Primorial 17:** $510,510$
-* **10!:** $3,628,800$ (Massive prime multiplicity).
-* **Primorial 29:** $10^9$ range.
-* **Primorial 31:** $10^{11}$ range ($200,560,490,130$).
-
-Selecting these presets automatically configures the engine to compute the exact spectrum unfolding. The output table features interactive pagination, allowing you to traverse thousands of transition amplitudes and spacings generated at massive scales without hanging the browser DOM.
-
----
-
-> **Note on Verification:** The output of this engine is the empirical manifestation of the strict mathematical proofs defined in the Lean 4 `tensor-sieve` repository. Please refer to that repository for the formalized geometric definitions of the Krein metric and $p$-adic shift operators.
+### Built-in Presets
+Highly composite numbers and primorials generate wide intermediate slices with dense factor overlaps:
+- **27,720,000** ($2^6 \cdot 3^2 \cdot 5^4 \cdot 7 \cdot 11$)
+- **Primorial 17#** ($510,510$)
+- **Highly Composite** ($720,720$)
+- **10!** ($3,628,800$)
+- **Primorial 29#** ($6,469,693,230$)
+- **Primorial 31#** ($200,560,490,130$)
