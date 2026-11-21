@@ -34,13 +34,13 @@ The second tab runs an independent calculation based on the Weil explicit formul
 
 ## Mathematical Definitions
 
-All numerical routines live in [src/lib.rs](src/lib.rs). For positive integers $a$ and $b$ with prime-power exponents $v_p(a)$ and $v_p(b)$, the factor count and $p$-adic $L^1$ distance are
+All numerical routines live in [src/lib.rs](src/lib.rs). For positive integers $a$ and $b$ with prime-power exponents $v_p(a)$ and $v_p(b)$, the factor count and $p$-adic L1 distance are
 
 $$\Omega(a) = \sum_p v_p(a), \qquad d(a, b) = \sum_p |v_p(a) - v_p(b)|.$$
 
 Let $g = \gcd(a, b)$ and $w = \Omega(g)$. The Hermitian coherence matrix $H$ has diagonal entries $H_{aa} = (-1)^{\Omega(a)} \Omega(a)$. For $a \neq b$, $H_{ab} = 0$ when $d(a, b) > w$, and otherwise
 
-$$H_{ab} = (-1)^w (w - d(a, b)) + i\,\mathrm{sgn}(a - b)\,d(a, b).$$
+$$H_{ab} = (-1)^w (w - d(a, b)) + i \cdot \mathrm{sgn}(a - b) d(a, b).$$
 
 The parity matrix $J = \mathrm{diag}((-1)^{\Omega(x)})$ satisfies $J^2 = I$, and the slice operator $C = JH$ satisfies $JC = C^*J$. From the sorted eigenvalues $E_1 \le \dots \le E_n$ with adjacent gaps $s_k = E_{k+1} - E_k$, the spacing ratio is
 
@@ -48,8 +48,8 @@ $$\langle r \rangle = \left\langle \frac{\min(s_k, s_{k+1})}{\max(s_k, s_{k+1})}
 
 The second tab evaluates the smoothed Weil explicit-formula sum with Gaussian width $\sigma$ and prime-power cutoff $B$,
 
-$$R(t) = \frac{1}{2\pi}\ln\!\left(\frac{t}{2\pi}\right) - \frac{1}{\pi}\sum_{p^k \le B} \frac{\ln p}{p^{k/2}} e^{-\frac{1}{2}(\sigma \ln p^k)^2} \cos(t \ln p^k).$$
+$$R(t) = \frac{1}{2\pi}\ln\left(\frac{t}{2\pi}\right) - \frac{1}{\pi}\sum_{p^k \le B} \frac{\ln p}{p^{k/2}} e^{-\frac{1}{2}(\sigma \ln p^k)^2} \cos(t \ln p^k).$$
 
 ## Built-in Presets
 
-Highly composite numbers and primorials generate wide intermediate divisor slices with dense prime overlaps. The interface includes presets for `27,720,000` ($2^6 \cdot 3^2 \cdot 5^4 \cdot 7 \cdot 11$), `510,510` ($17\#$), `720,720`, `3,628,800` ($10!$), `6,469,693,230` ($29\#$), and `200,560,490,130` ($31\#$).
+Highly composite numbers and primorials generate wide intermediate divisor slices with dense prime overlaps. The interface includes presets for `27,720,000` ($2^6 \cdot 3^2 \cdot 5^4 \cdot 7 \cdot 11$), `510,510` (primorial `17#`), `720,720`, `3,628,800` (`10!`), `6,469,693,230` (primorial `29#`), and `200,560,490,130` (primorial `31#`).
